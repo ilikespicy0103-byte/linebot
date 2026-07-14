@@ -45,6 +45,7 @@ function handleEvent(event) {
   ){
 
    console.log("마디수 코드 진입");
+   console.log("입력 내용:", event.message.text);
 if(event.message.text === "!순위"){
 
   if(!stats[groupId]){
@@ -68,7 +69,6 @@ if(event.message.text === "!순위"){
     });
   }
 
-
   return client.replyMessage(
     event.replyToken,
     {
@@ -77,9 +77,25 @@ if(event.message.text === "!순위"){
     }
   );
 }
-  console.log("저장됨:", stats);
-  }
 
+if(!stats[groupId]){
+  stats[groupId] = {};
+}
+
+if(!stats[groupId][userId]){
+  stats[groupId][userId] = 0;
+}
+
+stats[groupId][userId]++;
+
+fs.writeFileSync(
+  "./data.json",
+  JSON.stringify(stats, null, 2)
+);
+
+console.log("저장됨:", stats);
+  }
+}
   
   if (event.type === 'memberJoined') {
     return client.replyMessage(event.replyToken, [
