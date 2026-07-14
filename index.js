@@ -13,8 +13,8 @@ const express = require('express');
 const line = require('@line/bot-sdk');
 
 const config = {
-  channelAccessToken: '*******',
-  channelSecret: '*******'
+  channelAccessToken: 'ahcygSA1tL7NjahzndzKYBK/IX5Kf5VfEVhDxrF+fUnfVKuWA5xVXS0GFWNtjCLvCGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxLvPX1I057obAqeAKfjiCrFk6QYRmtNxxOTzItfmlH6CAdB04t89/1O/w1cDnyilFU=',
+  channelSecret: '218c9df27405cd1b7ada5fa3c46f5409'
 }
 
 const app = express();
@@ -45,12 +45,10 @@ function handleEvent(event) {
     event.message.type === 'text'
   ){
 
-   console.log("마디수 코드 진입");
    console.log("입력 내용:", event.message.text);
 if(event.message.text === "!순위"){
 
   let ranking = stats[groupId] || {};
-  console.log("순위 확인 데이터:", ranking);
 
   let list = Object.entries(ranking)
     .sort((a,b)=> b[1] - a[1])
@@ -81,7 +79,10 @@ if(!stats[groupId][userId]){
 
 stats[groupId][userId]++;
 
-fs.writeFileSync("./data.json", JSON.stringify(stats, null, 2));
+fs.writeFileSync(
+      "./data.json",
+      JSON.stringify(stats, null, 2)
+    );
 
 console.log("저장됨:", stats);
   }
