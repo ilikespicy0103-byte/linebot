@@ -25,10 +25,14 @@ if (fs.existsSync("./data.json")) {
 
 app.post('/webhook', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
-  res.sendStatus(200)
+    .then(() => res.sendStatus(200))
+    .catch(err => {
+      console.error(err)
+      res.sendStatus(500)
+    })
 })
 
-function handleEvent(event) {
+async function handleEvent(event) {
 
   let groupId = event.source.groupId || event.source.roomId
   let userId = event.source.userId
@@ -39,14 +43,19 @@ function handleEvent(event) {
     event.message.type === 'text'
   ) {
 
-    console.log("입력 내용:", event.message.text)
+    // 🔥 사용자 이름 가져오기
+    let profile = await client.getProfile(userId)
+    let userName = profile.displayName
 
+    console.log("입력:", event.message.text, "유저:", userName)
+
+    // ✅ 순위 명령어
     if (event.message.text === "!순위") {
 
       let ranking = stats[groupId] || {}
 
       let list = Object.entries(ranking)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => b[1].count - a[1].count)
         .slice(0, 10)
 
       let text = "🏆 마디수 순위\n\n"
@@ -55,7 +64,7 @@ function handleEvent(event) {
         text += "아직 기록이 없습니다."
       } else {
         list.forEach((user, index) => {
-          text += `${index + 1}위 : ${user[1]}마디\n`
+          text += `${index + 1}위 : ${user[1].name} (${user[1].count}마디)\n`
         })
       }
 
@@ -64,23 +73,27 @@ function handleEvent(event) {
       ])
     }
 
+    // ✅ 데이터 구조 변경
     if (!stats[groupId]) {
       stats[groupId] = {}
     }
 
     if (!stats[groupId][userId]) {
-      stats[groupId][userId] = 0
+      stats[groupId][userId] = {
+        name: userName,
+        count: 0
+      }
     }
 
-    stats[groupId][userId]++
+    // 이름 업데이트 (변경 대비)
+    stats[groupId][userId].name = userName
+    stats[groupId][userId].count++
 
-    fs.writeFileSync(
-      "./data.json",
-      JSON.stringify(stats, null, 2)
-    )
-
-    console.log("저장됨:", stats)
+    console.log("저장:", stats)
   }
+
+  return Promise.resolve(null)
+}
   
   if (event.type === 'memberJoined') {
     return client.replyMessage(event.replyToken, [
