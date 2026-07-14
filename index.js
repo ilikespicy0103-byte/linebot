@@ -13,8 +13,8 @@ const express = require('express');
 const line = require('@line/bot-sdk');
 
 const config = {
-  channelAccessToken: 'U5n0xLpYbRjdTvNTM15jLNQf/F2pKdRZM5vcIPgZ+JsIexF9naSdiGcbBSOHEg07CGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxLkOGipPzvN8Rg6P3DIwc1+EFcgbEWdoUlE9KAnFioSqgdB04t89/1O/w1cDnyilFU=',
-  channelSecret: '3262de778bfcdd4a49e925a2b2d3533c'
+  channelAccessToken: '*******',
+  channelSecret: '*******'
 }
 
 const app = express();
@@ -35,7 +35,7 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 
 function handleEvent(event) {
 
-  let groupId = event.source.groupId;
+  let groupId = event.source.groupId || event.source.roomId;
   let userId = event.source.userId;
 
 
@@ -49,17 +49,12 @@ function handleEvent(event) {
    console.log("입력 내용:", event.message.text);
 if(event.message.text === "!순위"){
 
-  if(!stats[groupId]){
-    stats[groupId] = {};
-  }
-
-  let ranking = stats[groupId];
-console.log("순위 확인 데이터:", ranking);
+  let ranking = stats[groupId] || {};
+  console.log("순위 확인 데이터:", ranking);
 
   let list = Object.entries(ranking)
     .sort((a,b)=> b[1] - a[1])
     .slice(0,10);
-
 
   let text = "🏆 마디수 순위\n\n";
 
@@ -71,15 +66,10 @@ console.log("순위 확인 데이터:", ranking);
     });
   }
 
-  return client.replyMessage(
-  event.replyToken,
-  [
-    {
-      type:"text",
-      text:text
-    }
-  ]
-);
+  return client.replyMessage(event.replyToken, [
+    { type:"text", text:text }
+  ]);
+}
 
 if(!stats[groupId]){
   stats[groupId] = {};
@@ -91,10 +81,7 @@ if(!stats[groupId][userId]){
 
 stats[groupId][userId]++;
 
-fs.writeFileSync(
-  "./data.json",
-  JSON.stringify(stats, null, 2)
-);
+fs.writeFileSync("./data.json", JSON.stringify(stats, null, 2));
 
 console.log("저장됨:", stats);
   }
