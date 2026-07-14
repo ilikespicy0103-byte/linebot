@@ -1,26 +1,11 @@
-const express = require('express')
-const line = require('@line/bot-sdk')
-const fs = require('fs')
-
-const app = express()
-
-const config = {
-  channelAccessToken: 'lq1evu3eVcUhPn2VnRJjxi0DTgEJtu2BmFtOYzXme0kMOACcxYlIaM69RZ5MQEUyCGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxJ/1P7vDFapqsAfQ7+0qh7IexFwlnyO/BKbaPgwmwC7IgdB04t89/1O/w1cDnyilFU=',
-  channelSecret: '218c9df27405cd1b7ada5fa3c46f5409'
-}
-
-const client = new line.Client(config)
+const fs = require("fs")
 
 let stats = {}
 
 if (fs.existsSync("./data.json")) {
-  try {
-    stats = JSON.parse(fs.readFileSync("./data.json"))
-    console.log("데이터 불러옴:", stats)
-  } catch (e) {
-    console.log("JSON 오류 → 초기화")
-    stats = {}
-  }
+  stats = JSON.parse(fs.readFileSync("./data.json"))
+} else {
+  stats = {}
 }
 
 app.post('/webhook', line.middleware(config), (req, res) => {
@@ -43,28 +28,29 @@ async function handleEvent(event) {
     event.message.type === 'text'
   ) {
 
-    // 🔥 사용자 이름 가져오기
-    let profile = await client.getProfile(userId)
-    let userName = profile.displayName
+    // 👉 닉네임 가져오기
+let profile = await client.getGroupMemberProfile(groupId, userId)
+let userName = profile.displayName
 
-    console.log("입력:", event.message.text, "유저:", userName)
-
-    // ✅ 순위 명령어
+    // 👉 순위 출력
     if (event.message.text === "!순위") {
 
       let ranking = stats[groupId] || {}
 
-      let list = Object.entries(ranking)
-        .sort((a, b) => b[1].count - a[1].count)
-        .slice(0, 10)
+      let list = Object.values(ranking)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3) // ✅ TOP 3만
 
       let text = "🏆 마디수 순위\n\n"
 
       if (list.length === 0) {
         text += "아직 기록이 없습니다."
       } else {
+
+        const medals = ["🥇", "🥈", "🥉"]
+
         list.forEach((user, index) => {
-          text += `${index + 1}위 : ${user[1].name} (${user[1].count}마디)\n`
+          text += `${medals[index]} ${user.name} - ${user.count}글자\n`
         })
       }
 
@@ -73,7 +59,7 @@ async function handleEvent(event) {
       ])
     }
 
-    // ✅ 데이터 구조 변경
+    // 👉 데이터 구조 만들기
     if (!stats[groupId]) {
       stats[groupId] = {}
     }
@@ -85,11 +71,14 @@ async function handleEvent(event) {
       }
     }
 
-    // 이름 업데이트 (변경 대비)
+    // 👉 이름 업데이트 + 글자수 증가
     stats[groupId][userId].name = userName
-    stats[groupId][userId].count++
+    stats[groupId][userId].count += event.message.text.length
 
-    console.log("저장:", stats)
+    // 👉 저장
+    fs.writeFileSync("./data.json", JSON.stringify(stats, null, 2))
+
+    console.log("저장됨:", stats)
   }
 
   return Promise.resolve(null)
