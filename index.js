@@ -44,28 +44,26 @@ function handleEvent(event) {
     event.message.type === 'text'
   ){
 
+   console.log("마디수 코드 진입");
+
     if(!stats[groupId]){
       stats[groupId] = {};
     }
-
 
     if(!stats[groupId][userId]){
       stats[groupId][userId] = 0;
     }
 
-
     stats[groupId][userId]++;
-
 
     fs.writeFileSync(
       "./data.json",
       JSON.stringify(stats, null, 2)
     );
 
-  }
-
-
   console.log("저장됨:", stats);
+
+  }
 
   
   if (event.type === 'memberJoined') {
