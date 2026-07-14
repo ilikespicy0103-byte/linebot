@@ -5,8 +5,8 @@ const fs = require('fs')
 const app = express()
 
 const config = {
-  channelAccessToken: '여기에 Access Token',
-  channelSecret: '여기에 Secret'
+  channelAccessToken: 'lq1evu3eVcUhPn2VnRJjxi0DTgEJtu2BmFtOYzXme0kMOACcxYlIaM69RZ5MQEUyCGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxJ/1P7vDFapqsAfQ7+0qh7IexFwlnyO/BKbaPgwmwC7IgdB04t89/1O/w1cDnyilFU=',
+  channelSecret: '218c9df27405cd1b7ada5fa3c46f5409'
 }
 
 const client = new line.Client(config)
