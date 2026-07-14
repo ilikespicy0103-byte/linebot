@@ -2,10 +2,11 @@ const fs = require("fs");
 
 let stats = {};
 
-if(fs.existsSync("./data.json")){
-  stats = JSON.parse(
-    fs.readFileSync("./data.json")
-  );
+if (fs.existsSync("./data.json")) {
+  stats = JSON.parse(fs.readFileSync("./data.json"));
+  console.log("기존 데이터 불러옴:", stats);
+} else {
+  console.log("저장된 데이터 없음, 새로 시작");
 }
 
 const express = require('express');
