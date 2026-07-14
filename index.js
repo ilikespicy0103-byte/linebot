@@ -1,3 +1,13 @@
+const fs = require("fs");
+
+let stats = {};
+
+if(fs.existsSync("./data.json")){
+  stats = JSON.parse(
+    fs.readFileSync("./data.json")
+  );
+}
+
 const express = require('express');
 const line = require('@line/bot-sdk');
 
@@ -24,7 +34,39 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 
 function handleEvent(event) {
 
+  let groupId = event.source.groupId;
+  let userId = event.source.userId;
+
+
+  if(
+    groupId &&
+    event.type === 'message' &&
+    event.message.type === 'text'
+  ){
+
+    if(!stats[groupId]){
+      stats[groupId] = {};
+    }
+
+
+    if(!stats[groupId][userId]){
+      stats[groupId][userId] = 0;
+    }
+
+
+    stats[groupId][userId]++;
+
+
+    fs.writeFileSync(
+      "./data.json",
+      JSON.stringify(stats, null, 2)
+    );
+
+  }
+
+
   console.log(event);
+
   
   if (event.type === 'memberJoined') {
     return client.replyMessage(event.replyToken, [
@@ -43,6 +85,8 @@ function handleEvent(event) {
   return Promise.resolve(null);
 }
 
-app.listen(3000, () => {
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
   console.log('서버 실행 중!');
 });
