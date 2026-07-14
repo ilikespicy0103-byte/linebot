@@ -1,9 +1,21 @@
-const fs = require("fs")
+require('dotenv').config()
+const line = require('@line/bot-sdk')
+const express = require('express')
+const fs = require('fs')
+
+const app = express()
+
+const config = {
+  channelAccessToken:e5tlQ0Acq5+d9hWAEUWEwv3LESS0xNrOMR1eToZbACjR4upxGDRBFRJLBzEq5yAdCGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxIH1UcUztXW7Ml7AZI81g+OQBtt+LJ4Mpk22qhO78f2KQdB04t89/1O/w1cDnyilFU=,
+  channelSecret:1ee15d5f27c55a9f296415c9632a0f28,
+}
+
+const client = new line.Client(config)
 
 let stats = {}
 
-if (fs.existsSync("./data.json")) {
-  stats = JSON.parse(fs.readFileSync("./data.json"))
+if (fs.existsSync('./data.json')) {
+  stats = JSON.parse(fs.readFileSync('./data.json'))
 } else {
   stats = {}
 }
@@ -12,76 +24,79 @@ app.post('/webhook', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then(() => res.sendStatus(200))
     .catch(err => {
-      console.error(err)
+      console.error('에러:', err)
       res.sendStatus(500)
     })
 })
 
 async function handleEvent(event) {
+  try {
 
-  let groupId = event.source.groupId || event.source.roomId
-  let userId = event.source.userId
+    const groupId = event.source.groupId || event.source.roomId
+    const userId = event.source.userId
 
-  if (
-    groupId &&
-    event.type === 'message' &&
-    event.message.type === 'text'
-  ) {
+    if (
+      groupId &&
+      event.type === 'message' &&
+      event.message.type === 'text'
+    ) {
 
-    // 👉 닉네임 가져오기
-let profile = await client.getGroupMemberProfile(groupId, userId)
-let userName = profile.displayName
+      if (event.message.text === "!순위") {
 
-    // 👉 순위 출력
-    if (event.message.text === "!순위") {
+        const ranking = stats[groupId] || {}
 
-      let ranking = stats[groupId] || {}
+        const list = Object.values(ranking)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3)
 
-      let list = Object.values(ranking)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3) // ✅ TOP 3만
+        let text = "🏆 마디수 순위\n\n"
 
-      let text = "🏆 마디수 순위\n\n"
+        if (list.length === 0) {
+          text += "아직 기록이 없습니다."
+        } else {
+          const medals = ["🥇", "🥈", "🥉"]
 
-      if (list.length === 0) {
-        text += "아직 기록이 없습니다."
-      } else {
+          list.forEach((user, index) => {
+            text += `${medals[index]} ${user.name} - ${user.count}글자\n`
+          })
+        }
 
-        const medals = ["🥇", "🥈", "🥉"]
-
-        list.forEach((user, index) => {
-          text += `${medals[index]} ${user.name} - ${user.count}글자\n`
+        return client.replyMessage(event.replyToken, {
+          type: "text",
+          text: text
         })
       }
 
-      return client.replyMessage(event.replyToken, [
-        { type: "text", text: text }
-      ])
-    }
+      let userName = "알수없음"
 
-    // 👉 데이터 구조 만들기
-    if (!stats[groupId]) {
-      stats[groupId] = {}
-    }
-
-    if (!stats[groupId][userId]) {
-      stats[groupId][userId] = {
-        name: userName,
-        count: 0
+      try {
+        const profile = await client.getGroupMemberProfile(groupId, userId)
+        userName = profile.displayName
+      } catch (e) {
+        console.log("프로필 에러:", e.message)
       }
+
+      if (!stats[groupId]) stats[groupId] = {}
+
+      if (!stats[groupId][userId]) {
+        stats[groupId][userId] = {
+          name: userName,
+          count: 0
+        }
+      }
+
+      stats[groupId][userId].name = userName
+      stats[groupId][userId].count += event.message.text.length
+
+      fs.writeFileSync('./data.json', JSON.stringify(stats, null, 2))
     }
 
-    // 👉 이름 업데이트 + 글자수 증가
-    stats[groupId][userId].name = userName
-    stats[groupId][userId].count += event.message.text.length
+    return Promise.resolve(null)
 
-    // 👉 저장
-    fs.writeFileSync("./data.json", JSON.stringify(stats, null, 2))
-
-    console.log("저장됨:", stats)
+  } catch (err) {
+    console.error("🔥 handleEvent 에러:", err)
+    return Promise.resolve(null)
   }
-
-  return Promise.resolve(null)
 }
   
   if (event.type === 'memberJoined') {
@@ -99,7 +114,6 @@ let userName = profile.displayName
     ]);
   }
   return Promise.resolve(null);
-}
 
 const PORT = process.env.PORT || 3000;
 
