@@ -45,24 +45,39 @@ function handleEvent(event) {
   ){
 
    console.log("마디수 코드 진입");
+if(event.message.text === "!순위"){
 
-    if(!stats[groupId]){
-      stats[groupId] = {};
+  if(!stats[groupId]){
+    stats[groupId] = {};
+  }
+
+  let ranking = stats[groupId];
+
+  let list = Object.entries(ranking)
+    .sort((a,b)=> b[1] - a[1])
+    .slice(0,10);
+
+
+  let text = "🏆 마디수 순위\n\n";
+
+  if(list.length === 0){
+    text += "아직 기록이 없습니다.";
+  } else {
+    list.forEach((user,index)=>{
+      text += `${index+1}위 : ${user[1]}마디\n`;
+    });
+  }
+
+
+  return client.replyMessage(
+    event.replyToken,
+    {
+      type:"text",
+      text:text
     }
-
-    if(!stats[groupId][userId]){
-      stats[groupId][userId] = 0;
-    }
-
-    stats[groupId][userId]++;
-
-    fs.writeFileSync(
-      "./data.json",
-      JSON.stringify(stats, null, 2)
-    );
-
+  );
+}
   console.log("저장됨:", stats);
-
   }
 
   
