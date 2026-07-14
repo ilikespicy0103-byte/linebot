@@ -53,6 +53,7 @@ if(event.message.text === "!순위"){
   }
 
   let ranking = stats[groupId];
+console.log("순위 확인 데이터:", ranking);
 
   let list = Object.entries(ranking)
     .sort((a,b)=> b[1] - a[1])
@@ -70,13 +71,14 @@ if(event.message.text === "!순위"){
   }
 
   return client.replyMessage(
-    event.replyToken,
+  event.replyToken,
+  [
     {
       type:"text",
       text:text
     }
-  );
-}
+  ]
+);
 
 if(!stats[groupId]){
   stats[groupId] = {};
