@@ -65,7 +65,7 @@ function handleEvent(event) {
   }
 
 
-  console.log(event);
+  console.log("저장됨:", stats);
 
   
   if (event.type === 'memberJoined') {
