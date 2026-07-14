@@ -1,92 +1,86 @@
-const fs = require("fs");
+const express = require('express')
+const line = require('@line/bot-sdk')
+const fs = require('fs')
 
-let stats = {};
-
-if (fs.existsSync("./data.json")) {
-  stats = JSON.parse(fs.readFileSync("./data.json"));
-  console.log("기존 데이터 불러옴:", stats);
-} else {
-  console.log("저장된 데이터 없음, 새로 시작");
-}
-
-const express = require('express');
-const line = require('@line/bot-sdk');
+const app = express()
 
 const config = {
-  channelAccessToken: 'ahcygSA1tL7NjahzndzKYBK/IX5Kf5VfEVhDxrF+fUnfVKuWA5xVXS0GFWNtjCLvCGoxxUYrFhyTmvh87H1/HIbaq76mKgdWohsurcnOJxLvPX1I057obAqeAKfjiCrFk6QYRmtNxxOTzItfmlH6CAdB04t89/1O/w1cDnyilFU=',
-  channelSecret: '218c9df27405cd1b7ada5fa3c46f5409'
+  channelAccessToken: '여기에 Access Token',
+  channelSecret: '여기에 Secret'
 }
 
-const app = express();
-const client = new line.Client(config);
+const client = new line.Client(config)
 
-app.get('/webhook', (req, res) => {
-  res.send('OK');
-});
+let stats = {}
+
+if (fs.existsSync("./data.json")) {
+  try {
+    stats = JSON.parse(fs.readFileSync("./data.json"))
+    console.log("데이터 불러옴:", stats)
+  } catch (e) {
+    console.log("JSON 오류 → 초기화")
+    stats = {}
+  }
+}
 
 app.post('/webhook', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
-    .then(() => res.status(200).end())
-    .catch(err => {
-      console.error(err);
-      res.status(500).end();
-    });
-});
+  res.sendStatus(200)
+})
 
 function handleEvent(event) {
 
-  let groupId = event.source.groupId || event.source.roomId;
-  let userId = event.source.userId;
+  let groupId = event.source.groupId || event.source.roomId
+  let userId = event.source.userId
 
-
-  if(
+  if (
     groupId &&
     event.type === 'message' &&
     event.message.type === 'text'
-  ){
+  ) {
 
-   console.log("입력 내용:", event.message.text);
-if(event.message.text === "!순위"){
+    console.log("입력 내용:", event.message.text)
 
-  let ranking = stats[groupId] || {};
+    if (event.message.text === "!순위") {
 
-  let list = Object.entries(ranking)
-    .sort((a,b)=> b[1] - a[1])
-    .slice(0,10);
+      let ranking = stats[groupId] || {}
 
-  let text = "🏆 마디수 순위\n\n";
+      let list = Object.entries(ranking)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
 
-  if(list.length === 0){
-    text += "아직 기록이 없습니다.";
-  } else {
-    list.forEach((user,index)=>{
-      text += `${index+1}위 : ${user[1]}마디\n`;
-    });
-  }
+      let text = "🏆 마디수 순위\n\n"
 
-  return client.replyMessage(event.replyToken, [
-    { type:"text", text:text }
-  ]);
-}
+      if (list.length === 0) {
+        text += "아직 기록이 없습니다."
+      } else {
+        list.forEach((user, index) => {
+          text += `${index + 1}위 : ${user[1]}마디\n`
+        })
+      }
 
-if(!stats[groupId]){
-  stats[groupId] = {};
-}
+      return client.replyMessage(event.replyToken, [
+        { type: "text", text: text }
+      ])
+    }
 
-if(!stats[groupId][userId]){
-  stats[groupId][userId] = 0;
-}
+    if (!stats[groupId]) {
+      stats[groupId] = {}
+    }
 
-stats[groupId][userId]++;
+    if (!stats[groupId][userId]) {
+      stats[groupId][userId] = 0
+    }
 
-fs.writeFileSync(
+    stats[groupId][userId]++
+
+    fs.writeFileSync(
       "./data.json",
       JSON.stringify(stats, null, 2)
-    );
+    )
 
-console.log("저장됨:", stats);
+    console.log("저장됨:", stats)
   }
-}
   
   if (event.type === 'memberJoined') {
     return client.replyMessage(event.replyToken, [
