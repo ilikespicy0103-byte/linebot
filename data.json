@@ -1,9 +1,1 @@
-const fs = require("fs");
-
-let stats = {};
-
-if(fs.existsSync("./data.json")){
-    stats = JSON.parse(
-        fs.readFileSync("./data.json")
-    );
-}
+{}
