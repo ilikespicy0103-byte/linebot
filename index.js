@@ -3,6 +3,7 @@ require('dotenv').config()
 const line = require('@line/bot-sdk')
 const express = require('express')
 const fs = require('fs')
+const axios = require("axios");
 
 const app = express()
 
@@ -22,6 +23,23 @@ if (fs.existsSync('./data.json')) {
   stats = JSON.parse(fs.readFileSync('./data.json'))
 }
 
+async function saveToSheet(name, score, rank) {
+  try {
+    await axios.post(
+      "https://script.google.com/macros/s/AKfycbxBSekPemh-aqyVo1VqB5PV-YbwPh_Qr1_3iDibpGoZnn5hoLoRW1sreh-fUCimu6_jEg/exec",
+      {
+        name: name,
+        score: score,
+        rank: rank
+      }
+    );
+
+    console.log("시트 저장 성공");
+
+  } catch (error) {
+    console.log("시트 저장 실패:", error.message);
+  }
+}
 
 app.post('/webhook', line.middleware(config), (req, res) => {
 
@@ -169,6 +187,12 @@ if (event.type === 'memberJoined') {
 
     stats[groupId][userId].count += event.message.text.length
 
+
+saveToSheet(
+  userName,
+  stats[groupId][userId].count,
+  0
+)
 
 
     fs.writeFileSync(
