@@ -188,10 +188,18 @@ if (event.type === 'memberJoined') {
     stats[groupId][userId].count += event.message.text.length
 
 
+const rankingList = Object.values(stats[groupId])
+  .sort((a,b) => b.count - a.count)
+
+const myRank = rankingList.findIndex(
+  user => user.name === userName
+) + 1
+
+
 saveToSheet(
   userName,
   stats[groupId][userId].count,
-  0
+  myRank
 )
 
 
