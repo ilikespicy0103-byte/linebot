@@ -50,7 +50,15 @@ function checkDailyReset(){
 }
 
 async function saveToSheet(name, score, rank) {
+
+  console.log("saveToSheet 실행:", {
+    name: name,
+    score: score,
+    rank: rank
+  });
+
   try {
+
     await axios.post(
       "https://script.google.com/macros/s/AKfycbxBSekPemh-aqyVo1VqB5PV-YbwPh_Qr1_3iDibpGoZnn5hoLoRW1sreh-fUCimu6_jEg/exec",
       {
@@ -63,9 +71,12 @@ async function saveToSheet(name, score, rank) {
     console.log("시트 저장 성공");
 
   } catch (error) {
+
     console.log("시트 저장 실패:", error.message);
+
   }
 }
+
 
 app.post('/webhook', line.middleware(config), (req, res) => {
 
@@ -210,13 +221,21 @@ if (event.type === 'memberJoined') {
 
 
 
-    stats[groupId][userId].name=userName
+stats[groupId][userId].name = userName
 
-    stats[groupId][userId].count += event.message.text.length
 
+const messageLength = event.message.text.replace(/\s/g, '').length;
+
+
+if (messageLength >= 3) {
+
+  stats[groupId][userId].count += messageLength;
+
+}
 
 const rankingList = Object.values(stats[groupId])
   .sort((a,b) => b.count - a.count)
+
 
 const myRank = rankingList.findIndex(
   user => user.name === userName
@@ -228,7 +247,6 @@ saveToSheet(
   stats[groupId][userId].count,
   myRank
 )
-
 
     fs.writeFileSync(
       './data.json',
