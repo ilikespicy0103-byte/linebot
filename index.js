@@ -22,6 +22,32 @@ let stats = {}
 if (fs.existsSync('./data.json')) {
   stats = JSON.parse(fs.readFileSync('./data.json'))
 }
+// 자정 초기화 기능
+let lastResetDate = new Date().toDateString();
+
+
+function checkDailyReset(){
+
+  const today = new Date().toDateString();
+
+
+  if(today !== lastResetDate){
+
+    stats = {};
+
+    fs.writeFileSync(
+      './data.json',
+      JSON.stringify(stats,null,2)
+    );
+
+
+    lastResetDate = today;
+
+    console.log("마디수 통계 초기화 완료");
+
+  }
+
+}
 
 async function saveToSheet(name, score, rank) {
   try {
@@ -55,6 +81,7 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 
 async function handleEvent(event) {
 
+  checkDailyReset();
 
   // 그룹 입장
 if (event.type === 'memberJoined') {
