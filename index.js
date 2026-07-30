@@ -102,18 +102,47 @@ function checkDailyReset(){
 // ===============================
 // Google Sheet 저장
 // ===============================
+
+async function saveToSheet(
+  groupId,
+  userId,
+  name,
+  score,
+  rank
+){
+
   console.log(
     "시트 저장:",
     {
+      groupId,
+      userId,
       name,
       score,
       rank
     }
-  )
+  );
+
+
+  try {
+
+    await axios.post(
+
+      "https://script.google.com/macros/s/AKfycbwrN4BqMuEDNxo2CW1FT_j18UTPCysHxHMWgIws-BnDGG3fG9n-qPvAzX5u2KXm6lUt7g/exec",
+
+      {
+        groupId,
+        userId,
+        name,
+        score,
+        rank
+      }
+
+    );
+
 
     console.log(
       "시트 저장 성공"
-    )
+    );
 
 
   } catch(error){
@@ -121,7 +150,7 @@ function checkDailyReset(){
     console.log(
       "시트 저장 실패:",
       error.message
-    )
+    );
 
   }
 
