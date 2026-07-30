@@ -3,7 +3,7 @@ require('dotenv').config()
 const line = require('@line/bot-sdk')
 const express = require('express')
 const fs = require('fs')
-const axios = require("axios");
+const axios = require('axios')
 
 const app = express()
 
@@ -17,253 +17,473 @@ const client = new line.Client(config)
 const PORT = process.env.PORT || 3000
 
 
-let stats = {}
+// ===============================
+// 데이터 로드
+// ===============================
+
+let data = {
+  lastResetDate: new Date().toDateString(),
+  stats: {}
+}
+
 
 if (fs.existsSync('./data.json')) {
-  stats = JSON.parse(fs.readFileSync('./data.json'))
-}
-// 자정 초기화 기능
-let lastResetDate = new Date().toDateString();
 
+  try {
+
+    data = JSON.parse(
+      fs.readFileSync('./data.json')
+    )
+
+  } catch(e) {
+
+    console.log("data.json 읽기 실패")
+  }
+
+}
+
+
+let stats = data.stats || {}
+
+let lastResetDate =
+  data.lastResetDate || new Date().toDateString()
+
+
+
+// ===============================
+// 데이터 저장
+// ===============================
+
+function saveData(){
+
+  fs.writeFileSync(
+    './data.json',
+    JSON.stringify(
+      {
+        lastResetDate,
+        stats
+      },
+      null,
+      2
+    )
+  )
+
+}
+
+
+
+// ===============================
+// 자정 초기화
+// ===============================
 
 function checkDailyReset(){
 
-  const today = new Date().toDateString();
+  const today =
+    new Date().toDateString()
 
 
   if(today !== lastResetDate){
 
-    stats = {};
+    stats = {}
 
-    fs.writeFileSync(
-      './data.json',
-      JSON.stringify(stats,null,2)
-    );
+    lastResetDate = today
 
+    saveData()
 
-    lastResetDate = today;
-
-    console.log("마디수 통계 초기화 완료");
+    console.log(
+      "마디수 통계 초기화 완료"
+    )
 
   }
 
 }
 
-async function saveToSheet(name, score, rank) {
 
-  console.log("saveToSheet 실행:", {
-    name: name,
-    score: score,
-    rank: rank
-  });
+
+// ===============================
+// Google Sheet 저장
+// ===============================
+
+async function saveToSheet(
+  name,
+  score,
+  rank
+){
+
+  console.log(
+    "시트 저장:",
+    {
+      name,
+      score,
+      rank
+    }
+  )
+
 
   try {
 
     await axios.post(
+
       "https://script.google.com/macros/s/AKfycbxBSekPemh-aqyVo1VqB5PV-YbwPh_Qr1_3iDibpGoZnn5hoLoRW1sreh-fUCimu6_jEg/exec",
+
       {
-        name: name,
-        score: score,
-        rank: rank
+        name,
+        score,
+        rank
       }
-    );
 
-    console.log("시트 저장 성공");
+    )
 
-  } catch (error) {
 
-    console.log("시트 저장 실패:", error.message);
+    console.log(
+      "시트 저장 성공"
+    )
+
+
+  } catch(error){
+
+    console.log(
+      "시트 저장 실패:",
+      error.message
+    )
 
   }
+
 }
 
 
-app.post('/webhook', line.middleware(config), (req, res) => {
 
-  Promise.all(req.body.events.map(handleEvent))
-    .then(() => res.sendStatus(200))
-    .catch(err => {
-      console.error(err)
+// ===============================
+// Webhook
+// ===============================
+
+app.post(
+  '/webhook',
+  line.middleware(config),
+  (req,res)=>{
+
+
+    Promise.all(
+      req.body.events.map(handleEvent)
+    )
+
+    .then(
+      ()=>res.sendStatus(200)
+    )
+
+    .catch(error=>{
+
+      console.error(error)
+
       res.sendStatus(500)
+
     })
 
-})
+
+  }
+)
 
 
-async function handleEvent(event) {
 
-  checkDailyReset();
+// ===============================
+// 이벤트 처리
+// ===============================
 
-  // 그룹 입장
-if (event.type === 'memberJoined') {
+async function handleEvent(event){
 
-  return client.replyMessage(event.replyToken, [
-    {
-      type: 'image',
-      originalContentUrl: 'https://i.pinimg.com/736x/55/e1/74/55e174c837fbfd1124486fbd45bd34e7.jpg',
-      previewImageUrl: 'https://i.pinimg.com/736x/55/e1/74/55e174c837fbfd1124486fbd45bd34e7.jpg'
-    },
-    {
-      type: 'text',
-      text: `반가워요! 🎨Palette🌈에 오신 걸 환영합니다.
+
+  checkDailyReset()
+
+
+
+  // -------------------------------
+  // 그룹 입장 메시지
+  // -------------------------------
+
+  if(event.type === 'memberJoined'){
+
+
+    return client.replyMessage(
+
+      event.replyToken,
+
+      [
+
+        {
+          type:'image',
+
+          originalContentUrl:
+          'https://i.pinimg.com/736x/55/e1/74/55e174c837fbfd1124486fbd45bd34e7.jpg',
+
+          previewImageUrl:
+          'https://i.pinimg.com/736x/55/e1/74/55e174c837fbfd1124486fbd45bd34e7.jpg'
+        },
+
+
+        {
+          type:'text',
+
+          text:
+`반가워요! 🎨Palette🌈에 오신 걸 환영합니다.
 
 📌 공지 및 노트는 꼭 확인해주세요.
 😊 간단한 자기소개도 부탁드립니다.
 
 즐거운 시간 보내세요!`
-    }
-  ]);
+        }
 
-}
+      ]
 
-
-  // 텍스트 메시지만 기록
-  if (
-    event.type === 'message' &&
-    event.message.type === 'text'
-  ) {
-
-
-    const groupId =
-      event.source.groupId ||
-      event.source.roomId
-
-
-    const userId = event.source.userId
-
-
-    if (!groupId || !userId) {
-      return null
-    }
-
-
-
-    // 순위 확인
-    if (event.message.text === "!순위") {
-
-
-      const ranking = stats[groupId] || {}
-
-
-      const list = Object.values(ranking)
-        .sort((a,b)=> b.count - a.count)
-        .slice(0,3)
-
-
-
-      let text = "🏆 마디수 순위\n\n"
-
-
-      if(list.length === 0){
-
-        text += "아직 기록이 없습니다."
-
-      } else {
-
-
-        const medal = ["🥇","🥈","🥉"]
-
-
-        list.forEach((user,index)=>{
-
-          text += `${medal[index]} ${user.name} - ${user.count}글자\n`
-
-        })
-
-
-      }
-
-
-      return client.replyMessage(event.replyToken,{
-        type:"text",
-        text:text
-      })
-
-    }
-
-
-
-    // 이름 가져오기
-
-    let userName = "알수없음"
-
-
-    try {
-
-      const profile =
-        await client.getGroupMemberProfile(groupId,userId)
-
-      userName = profile.displayName
-
-
-    } catch(e){
-
-      console.log("프로필 가져오기 실패")
-
-    }
-
-
-
-    if(!stats[groupId]){
-      stats[groupId]={}
-    }
-
-
-
-    if(!stats[groupId][userId]){
-
-      stats[groupId][userId]={
-        name:userName,
-        count:0
-      }
-
-    }
-
-
-
-stats[groupId][userId].name = userName
-
-
-const messageLength = event.message.text.replace(/\s/g, '').length;
-
-
-if (messageLength >= 3) {
-
-  stats[groupId][userId].count += messageLength;
-
-}
-
-const rankingList = Object.values(stats[groupId])
-  .sort((a,b) => b.count - a.count)
-
-
-const myRank = rankingList.findIndex(
-  user => user.name === userName
-) + 1
-
-
-saveToSheet(
-  userName,
-  stats[groupId][userId].count,
-  myRank
-)
-
-    fs.writeFileSync(
-      './data.json',
-      JSON.stringify(stats,null,2)
     )
 
   }
 
 
+
+  // -------------------------------
+  // 텍스트 메시지만 처리
+  // -------------------------------
+
+  if(
+    event.type !== 'message' ||
+    event.message.type !== 'text'
+  ){
+
+    return null
+
+  }
+
+
+
+  const groupId =
+    event.source.groupId ||
+    event.source.roomId
+
+
+  const userId =
+    event.source.userId
+
+
+
+  if(!groupId || !userId){
+
+    return null
+
+  }
+
+
+
+  // ===============================
+  // 순위 확인
+  // ===============================
+
+  if(event.message.text === "!순위"){
+
+
+    const ranking =
+      stats[groupId] || {}
+
+
+
+    const list =
+      Object.values(ranking)
+
+      .sort(
+        (a,b)=> b.count - a.count
+      )
+
+      .slice(0,3)
+
+
+
+    let text =
+      "🏆 오늘의 마디수 순위\n\n"
+
+
+
+    if(list.length === 0){
+
+
+      text +=
+      "아직 기록이 없습니다."
+
+
+    } else {
+
+
+      const medal =
+      [
+        "🥇",
+        "🥈",
+        "🥉"
+      ]
+
+
+
+      list.forEach(
+        (user,index)=>{
+
+
+          text +=
+          `${medal[index]} ${user.name} - ${user.count}회\n`
+
+
+        }
+      )
+
+    }
+
+
+    return client.replyMessage(
+
+      event.replyToken,
+
+      {
+        type:"text",
+        text
+      }
+
+    )
+
+
+  }
+    // ===============================
+  // 사용자 이름 가져오기
+  // ===============================
+
+  let userName = "알수없음"
+
+
+  try {
+
+    const profile =
+      await client.getGroupMemberProfile(
+        groupId,
+        userId
+      )
+
+
+    userName =
+      profile.displayName
+
+
+  } catch(error){
+
+    console.log(
+      "프로필 가져오기 실패"
+    )
+
+  }
+  // ===============================
+  // 사용자 데이터 생성
+  // ===============================
+
+  if(!stats[groupId]){
+
+    stats[groupId] = {}
+
+  }
+
+
+
+  if(!stats[groupId][userId]){
+
+
+    stats[groupId][userId] = {
+
+      name:userName,
+
+      count:0
+
+    }
+
+  }
+
+
+
+  stats[groupId][userId].name =
+    userName
+
+
+
+  // ===============================
+  // 메시지 카운트
+  // ===============================
+
+  const messageLength =
+    event.message.text
+    .replace(/\s/g,'')
+    .length
+
+
+
+  if(messageLength >= 3){
+
+
+    stats[groupId][userId].count += 1
+
+
+
+    const rankingList =
+
+      Object.values(stats[groupId])
+
+      .sort(
+        (a,b)=>b.count-a.count
+      )
+
+
+
+    const myRank =
+
+      rankingList.findIndex(
+
+        user =>
+        user.name === userName
+
+      ) + 1
+
+
+
+    await saveToSheet(
+
+      userName,
+
+      stats[groupId][userId].count,
+
+      myRank
+
+    )
+
+
+  }
+
+
+
+  // 데이터 저장
+
+  saveData()
+
+
+
   return null
+
 
 }
 
 
 
-app.listen(PORT,()=>{
+// ===============================
+// 서버 실행
+// ===============================
 
- console.log(`서버 실행 중! PORT:${PORT}`)
+app.listen(
+  PORT,
+  ()=>{
 
-})
+    console.log(
+      `서버 실행 중! PORT:${PORT}`
+    )
+
+  }
+)
