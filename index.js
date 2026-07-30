@@ -99,17 +99,9 @@ function checkDailyReset(){
 }
 
 
-
 // ===============================
 // Google Sheet 저장
 // ===============================
-
-async function saveToSheet(
-  name,
-  score,
-  rank
-){
-
   console.log(
     "시트 저장:",
     {
@@ -118,22 +110,6 @@ async function saveToSheet(
       rank
     }
   )
-
-
-  try {
-
-    await axios.post(
-
-      "https://script.google.com/macros/s/AKfycbxBSekPemh-aqyVo1VqB5PV-YbwPh_Qr1_3iDibpGoZnn5hoLoRW1sreh-fUCimu6_jEg/exec",
-
-      {
-        name,
-        score,
-        rank
-      }
-
-    )
-
 
     console.log(
       "시트 저장 성공"
@@ -270,6 +246,28 @@ async function handleEvent(event){
     return null
 
   }
+  let userName = "알수없음"
+
+
+try {
+
+  const profile =
+    await client.getGroupMemberProfile(
+      groupId,
+      userId
+    )
+
+  userName =
+    profile.displayName
+
+
+} catch(error){
+
+  console.log(
+    "프로필 가져오기 실패"
+  )
+
+}
 
 
 
@@ -347,62 +345,41 @@ async function handleEvent(event){
 
 
   }
-    // ===============================
-  // 사용자 이름 가져오기
-  // ===============================
+  
+// ===============================
+// 사용자 데이터 생성
+// ===============================
 
-  let userName = "알수없음"
+if(!stats[groupId]){
 
+  stats[groupId] = {}
 
-  try {
-
-    const profile =
-      await client.getGroupMemberProfile(
-        groupId,
-        userId
-      )
+}
 
 
-    userName =
-      profile.displayName
 
+if(!stats[groupId][userId]){
 
-  } catch(error){
+  stats[groupId][userId] = {
 
-    console.log(
-      "프로필 가져오기 실패"
-    )
+    id:userId,
 
-  }
-  // ===============================
-  // 사용자 데이터 생성
-  // ===============================
+    name:userName,
 
-  if(!stats[groupId]){
-
-    stats[groupId] = {}
+    count:0
 
   }
 
-
-
-  if(!stats[groupId][userId]){
-
-
-    stats[groupId][userId] = {
-
-      name:userName,
-
-      count:0
-
-    }
-
-  }
+}
 
 
 
-  stats[groupId][userId].name =
-    userName
+stats[groupId][userId].id =
+userId
+
+
+stats[groupId][userId].name =
+userName
 
 
 
@@ -434,26 +411,31 @@ async function handleEvent(event){
 
 
 
-    const myRank =
+const myRank =
 
-      rankingList.findIndex(
+rankingList.findIndex(
 
-        user =>
-        user.name === userName
+ user =>
+ user.name === userName &&
+ user.id === userId
 
-      ) + 1
+) + 1
 
 
 
-    await saveToSheet(
+ await saveToSheet(
 
-      userName,
+  groupId,
 
-      stats[groupId][userId].count,
+  userId,
 
-      myRank
+  userName,
 
-    )
+  stats[groupId][userId].count,
+
+  myRank
+
+)
 
 
   }
